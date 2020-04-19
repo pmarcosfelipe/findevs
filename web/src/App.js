@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import api from './services/api';
 
 import './global.css';
 import './App.css';
@@ -6,30 +7,104 @@ import './Sidebar.css';
 import './Main.css';
 
 function App() {
+  const [devs, setDevs] = useState([]);
+  const [github_username, setGithubUsername] = useState('');
+  const [techs, setTechs] = useState('');
+
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+
+        setLatitude(latitude);
+        setLongitude(longitude);
+      },
+      (err) => {
+        console.log(err);
+      },
+      { timeout: 30000 }
+    );
+  }, []);
+
+  useEffect(() => {
+    async function loadDevs() {
+      const responde = await api.get('/users');
+
+      setDevs(responde.data);
+    }
+
+    loadDevs();
+  }, []);
+
+  async function handleAddDev(e) {
+    e.preventDefault();
+
+    const response = await api.post('/users', {
+      github_username,
+      techs,
+      latitude,
+      longitude,
+    });
+
+    setGithubUsername('');
+    setTechs('');
+
+    setDevs([...devs, response.data]);
+  }
+
   return (
     <div id="app">
       <aside>
         <strong>Cadastrar</strong>
-        <form>
+        <form onSubmit={handleAddDev}>
           <div className="input-block">
             <label htmlFor="github_username">Usuário do GitHub</label>
-            <input name="github_username" id="github_username" required></input>
+            <input
+              name="github_username"
+              id="github_username"
+              value={github_username}
+              onChange={(e) => setGithubUsername(e.target.value)}
+              required
+            ></input>
           </div>
 
           <div className="input-block">
             <label htmlFor="techs">Usuário do GitHub</label>
-            <input name="techs" id="techs" required></input>
+            <input
+              name="techs"
+              id="techs"
+              value={techs}
+              onChange={(e) => setTechs(e.target.value)}
+              required
+            ></input>
           </div>
 
           <div className="input-group">
             <div className="input-block">
               <label htmlFor="latitude">Latitude</label>
-              <input name="latitude" id="latitude" required></input>
+              <input
+                name="latitude"
+                id="latitude"
+                type="number"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                required
+              ></input>
             </div>
 
             <div className="input-block">
               <label htmlFor="longitude">Longitude</label>
-              <input name="longitude" id="longitude" required></input>
+              <input
+                name="longitude"
+                id="longitude"
+                type="number"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                required
+              ></input>
             </div>
           </div>
 
@@ -38,70 +113,21 @@ function App() {
       </aside>
       <main>
         <ul>
-          <li className="dev-item">
-            <header>
-              <img
-                src="https://avatars0.githubusercontent.com/u/20467588?s=460&u=020f0006be276a09357a1df9826ae2117049ff1c&v=4"
-                alt="Marcos Felipe"
-              />
-              <div className="user-info">
-                <strong>Marcos Felipe</strong>
-                <span>ReactJS, React Native, Nodejs</span>
-              </div>
-            </header>
-            <p>coffee, focus and coding.</p>
-            <a href="https://github.com/pmarcosfelipe">
-              Acessar perfil no GitHub
-            </a>
-          </li>
-          <li className="dev-item">
-            <header>
-              <img
-                src="https://avatars0.githubusercontent.com/u/20467588?s=460&u=020f0006be276a09357a1df9826ae2117049ff1c&v=4"
-                alt="Marcos Felipe"
-              />
-              <div className="user-info">
-                <strong>Marcos Felipe</strong>
-                <span>ReactJS, React Native, Nodejs</span>
-              </div>
-            </header>
-            <p>coffee, focus and coding.</p>
-            <a href="https://github.com/pmarcosfelipe">
-              Acessar perfil no GitHub
-            </a>
-          </li>
-          <li className="dev-item">
-            <header>
-              <img
-                src="https://avatars0.githubusercontent.com/u/20467588?s=460&u=020f0006be276a09357a1df9826ae2117049ff1c&v=4"
-                alt="Marcos Felipe"
-              />
-              <div className="user-info">
-                <strong>Marcos Felipe</strong>
-                <span>ReactJS, React Native, Nodejs</span>
-              </div>
-            </header>
-            <p>coffee, focus and coding.</p>
-            <a href="https://github.com/pmarcosfelipe">
-              Acessar perfil no GitHub
-            </a>
-          </li>
-          <li className="dev-item">
-            <header>
-              <img
-                src="https://avatars0.githubusercontent.com/u/20467588?s=460&u=020f0006be276a09357a1df9826ae2117049ff1c&v=4"
-                alt="Marcos Felipe"
-              />
-              <div className="user-info">
-                <strong>Marcos Felipe</strong>
-                <span>ReactJS, React Native, Nodejs</span>
-              </div>
-            </header>
-            <p>coffee, focus and coding.</p>
-            <a href="https://github.com/pmarcosfelipe">
-              Acessar perfil no GitHub
-            </a>
-          </li>
+          {devs.map((dev) => (
+            <li className="dev-item" key={dev._id}>
+              <header>
+                <img src={dev.avatar_url} alt={dev.name} />
+                <div className="user-info">
+                  <strong>{dev.name}</strong>
+                  <span>{dev.techs.join(', ')}</span>
+                </div>
+              </header>
+              <p>{dev.bio}</p>
+              <a href={`https://github.com/${dev.github_username}`}>
+                Acessar perfil no GitHub
+              </a>
+            </li>
+          ))}
         </ul>
       </main>
     </div>
